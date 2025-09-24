@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <title>反诈宣传 · 观看提示页</title>
+  <style>
+    :root { --bg:#0f172a; --fg:#e5e7eb; --accent:#22c55e; --muted:#94a3b8; }
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,PingFang SC,Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,Arial,sans-serif;}
+    .wrap{min-height:100%;display:flex;flex-direction:column;}
+    header{padding:16px 20px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,0));}
+    header .title{font-weight:700;letter-spacing:.5px}
+    header .badge{font-size:12px;color:var(--muted)}
+    main{flex:1;display:flex;flex-direction:column;gap:16px;padding:16px;}
+    .card{position:relative;max-width:720px;margin:0 auto;border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.25);background:rgba(255,255,255,.03)}
+    .media{width:100%;display:block;background:#000;aspect-ratio:9/16;}
+    .hint{position:absolute;left:12px;top:12px;padding:6px 10px;border-radius:999px;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);font-size:12px;color:#d1fae5}
+    .btn{display:none;margin:14px auto 18px auto;max-width:720px;width:min(90%,720px);padding:14px 18px;border-radius:999px;border:none;background:var(--accent);color:#062e0e;font-size:18px;font-weight:800;letter-spacing:.6px;cursor:pointer;box-shadow:0 8px 16px rgba(34,197,94,.3);}
+    .btn:active{transform:translateY(1px)}
+    .note{max-width:720px;margin:0 auto;color:var(--muted);font-size:12px;text-align:center;}
+    .footer{padding:10px 0 20px 0;text-align:center;color:var(--muted);font-size:12px}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="title">无限冰云城</div>
+    <div class="badge">H5 最小实现</div>
+  </header>
+
+  <main>
+    <div class="card">
+      <!-- 如果使用视频：替换 src 为你的 MP4/WEBM，建议竖屏 9:16 -->
+      <video id="teaserVideo" class="media" playsinline webkit-playsinline muted autoplay preload="auto"></video>
+
+      <!-- 如果使用动图 GIF：替换 src 为你的 GIF。默认隐藏，由 JS 决定显示哪一种。-->
+      <img id="teaserGif" class="media" alt="宣传动图" style="display:none" />
+
+      <div class="hint" id="hint">正在播放预告片…</div>
+    </div>
+
+    <button id="cta" class="btn">充值观看完整版</button>
+    <div class="note">* 出现按钮后点击将跳转至反诈宣传页面 / 反诈中心 APP 下载页。</div>
+  </main>
+
+  <div class="footer">© 反诈宣传示例页 · 请替换为你的单位名称与备案信息</div>
+</div>
+
+<script>
+  /**
+   * 使用方式：把此文件作为 index.html 部署到任意静态空间（GitHub Pages、腾讯云、阿里云、又拍云、Vercel 等）。
+   * 扫码二维码跳转到此页面。二维码只需要包含这个页面的 URL 即可。
+   *
+   * 资源与跳转链接：
+   *   1) 将下方 VIDEO_SRC / GIF_SRC 替换成你自己的媒体地址（建议同域名，避免跨域）。
+   *   2) 将 TARGET_URL 替换为反诈页面或“国家反诈中心 APP”官方下载地址。
+   *   3) 若使用 GIF（无法监听播放结束），可设置 GIF_DURATION_MS 作为显示按钮的延时。
+   *
+   * 运行模式：通过 URL 查询参数控制：?mode=video 或 ?mode=gif
+   *   - 未指定时，默认尝试 video，若加载失败则回退到 gif。
+   */
+
+  // TODO: 替换成你的资源与目标链接：
+  const VIDEO_SRC = './media/teaser.mp4';     // 例：'/media/teaser.mp4'
+  const GIF_SRC   = './media/teaser.gif';     // 例：'/media/teaser.gif'
+  const TARGET_URL = 'https://example.com/anti-fraud'; // 例：反诈宣传页或 APP 下载页
+  const GIF_DURATION_MS = 8000; // 若用 GIF（无结束事件），播放 N 毫秒后显示按钮
+
+  // —— 以下为通用逻辑 ——
+  const qs = new URLSearchParams(location.search);
+  const forcedMode = (qs.get('mode')||'').toLowerCase(); // 'video' | 'gif' | ''
+  const videoEl = document.getElementById('teaserVideo');
+  const gifEl   = document.getElementById('teaserGif');
+  const ctaBtn  = document.getElementById('cta');
+  const hintEl  = document.getElementById('hint');
+
+  function showCTA(){
+    ctaBtn.style.display = 'block';
+    hintEl.textContent = '提示：请先了解防诈骗，再决定是否“充值”';
+  }
+
+  function bindCTA(){
+    ctaBtn.addEventListener('click', () => {
+      // 跳转到反诈宣传或 APP 下载
+      window.location.href = TARGET_URL;
+    });
+  }
+
+  function useVideo(){
+    gifEl.style.display = 'none';
+    videoEl.style.display = 'block';
+
+    // 设置视频源
+    videoEl.src = VIDEO_SRC;
+
+    // iOS/微信内可自动播放的必要属性
+    videoEl.setAttribute('playsinline', '');
+    videoEl.setAttribute('webkit-playsinline', '');
+    videoEl.muted = true; // 移动端自动播放通常要求静音
+    videoEl.autoplay = true;
+
+    // 监听结束事件
+    videoEl.addEventListener('ended', showCTA, { once:true });
+
+    // 若视频无法播放，降级到 GIF
+    videoEl.addEventListener('error', () => {
+      console.warn('视频加载失败，回退到 GIF');
+      useGif();
+    }, { once:true });
+
+    // 如果拿不到 ended（如某些环境限制），设置兜底超时（以视频时长或固定值为准）
+    let timeoutId;
+    videoEl.addEventListener('loadedmetadata', () => {
+      // 取 duration（秒）做个兜底（+0.5s缓冲）
+      const ms = Math.max(2000, (videoEl.duration || 6) * 1000 + 500);
+      timeoutId = setTimeout(() => {
+        showCTA();
+      }, ms);
+    }, { once:true });
+    videoEl.addEventListener('ended', () => clearTimeout(timeoutId), { once:true });
+  }
+
+  function useGif(){
+    videoEl.style.display = 'none';
+    gifEl.style.display = 'block';
+    gifEl.src = GIF_SRC + (GIF_SRC.includes('?') ? '&' : '?') + 't=' + Date.now(); // 防缓存
+
+    // GIF 无法获得“播放结束”事件，只能用定时器
+    setTimeout(showCTA, GIF_DURATION_MS);
+  }
+
+  function init(){
+    bindCTA();
+
+    if (forcedMode === 'gif') return useGif();
+    if (forcedMode === 'video') return useVideo();
+
+    // 默认优先尝试视频
+    useVideo();
+  }
+
+  init();
+</script>
+</body>
+</html>
